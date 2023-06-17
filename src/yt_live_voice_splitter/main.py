@@ -48,7 +48,7 @@ async def write_wav_file(file_path, audio_data, sample_width):
         wav_file.setframerate(SAMPLING_RATE)
         wav_file.writeframes(audio_data)
 
-async def process_audio(url, duration):
+async def process_audio(url, chunk_size):
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
     os.makedirs("tmp", exist_ok=True)
@@ -71,12 +71,12 @@ async def process_audio(url, duration):
 
     audio_url = get_audio_url(url)
 
-    split_command = f"ffmpeg -i {audio_url} -f segment -segment_time {duration} -ac 1 -ar {SAMPLING_RATE} -vn tmp/audio_%03d.wav"
+    split_command = f"ffmpeg -i {audio_url} -f segment -segment_time {chunk_size} -ac 1 -ar {SAMPLING_RATE} -vn tmp/audio_%03d.wav"
     devnull = open('/dev/null', 'w')
     # process = await asyncio.create_subprocess_shell(split_command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     process = await asyncio.create_subprocess_shell(split_command, stdout=devnull, stderr=devnull)
 
-    await asyncio.sleep(duration)
+    await asyncio.sleep(chunk_size)
 
     prev_files = []
     connecting_audio = None
@@ -233,7 +233,7 @@ async def process_audio(url, duration):
             devnull.close()
             sys.exit(1)
 
-        await asyncio.sleep(duration)
+        await asyncio.sleep(1)
 
     if connecting_audio:
         output_file_path = os.path.join("result", f"audio_{file_count}.wav")
@@ -244,12 +244,12 @@ async def process_audio(url, duration):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Real-time Voice Activity Detection")
     parser.add_argument("url", help="Livestream URL")
-    parser.add_argument("--duration", type=int, default=3, help="Chunk size")
+    parser.add_argument("--chunk_size", type=int, default=3, help="Chunk size")
 
     args = parser.parse_args()
 
     url = args.url
-    duration = args.duration
+    chunk_size = args.chunk_size
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(process_audio(url, duration))
+    loop.run_until_complete(process_audio(url, chunk_size))
