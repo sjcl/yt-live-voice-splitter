@@ -168,6 +168,7 @@ async def process_audio(url, chunk_size, threshold, margin):
                                             connecting_audio['length_to_end'] = frame_length - current_end
                                             connecting_audio['last_file_num'] = file_num
                                             connecting_audio['out'] = False
+                                            break
 
                                         margin_start = start - margin
                                         next_start = speech_segments[i + 1]['start'] if i < len(speech_segments) - 1 else None
