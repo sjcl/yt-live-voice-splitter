@@ -64,12 +64,13 @@ def write_wav_file(file_path, audio_data, sample_width):
         wav_file.setframerate(SAMPLING_RATE)
         wav_file.writeframes(audio_data)
 
+sample_width = None
 connecting_audio = None
 last_audio = None
 file_count = 1
 
 def process_audio(audio_path):
-    global connecting_audio, last_audio, file_count
+    global sample_width, connecting_audio, last_audio, file_count
 
     file_num = int(os.path.basename(audio_path).split("_")[1].split(".")[0])
 
@@ -210,13 +211,6 @@ def process_audio(audio_path):
 
     last_audio = audio_data
 
-
-
-    # if connecting_audio:
-    #     output_file_path = os.path.join("result", f"audio_{file_count}.wav")
-    #     await write_wav_file(output_file_path, connecting_audio['audio_data'], sample_width)
-    #     print(f"{output_file_path} code: 8")
-
 class FileHandler(FileSystemEventHandler):
 
     def __init__(self):
@@ -272,6 +266,10 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
             if ffmpeg.returncode is not None:
+                if connecting_audio and connecting_audio['out'] is False:
+                    output_file_path = os.path.join("result", f"audio_{file_count}.wav")
+                    write_wav_file(output_file_path, connecting_audio['audio_data'], sample_width)
+                    print(f"{output_file_path} code: 8")
                 break
     except KeyboardInterrupt:
         observer.stop()
