@@ -1,12 +1,7 @@
 import argparse
-import asyncio
 import os
-import signal
 import time
-import traceback
 import yt_dlp
-import collections
-import sys
 import shutil
 import wave
 import fnmatch
