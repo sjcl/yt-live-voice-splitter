@@ -7,6 +7,7 @@ import wave
 import fnmatch
 import torch
 import subprocess
+import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from faster_whisper import WhisperModel
@@ -35,7 +36,7 @@ def get_audio_url(url):
         info = ydl.extract_info(url, download=False)
         formats = info.get("formats", None)
         audio_url = formats[0]["url"] 
-        print(info)
+        logging.debug(info)
 
     return audio_url
 
@@ -74,7 +75,7 @@ def process_audio(audio_path):
     
     audio_data, num_channels, sample_width, frame_length = read_wav_file(audio_path)
 
-    print(f"Processing: {audio_path} length: {frame_length} Segments: {speech_segments}")
+    logging.debug(f"Processing: {audio_path} length: {frame_length} Segments: {speech_segments}")
 
     if connecting_audio and connecting_audio['out'] is False:
         if speech_segments:
@@ -90,11 +91,11 @@ def process_audio(audio_path):
                     if connecting_audio['length_to_end'] >= margin:
                         out_audio = connecting_audio['audio_data'][ : (connecting_audio['end_frame'] + margin) * sample_width]
                         write_wav_file(output_file_path, out_audio, sample_width)
-                        print(f"{output_file_path} code: 1 current_start: {current_start} current_end: {current_end}")
+                        logging.debug(f"{output_file_path} code: 1 current_start: {current_start} current_end: {current_end}")
                     else:
                         out_audio = connecting_audio['audio_data'] + audio_data[ : (margin - connecting_audio['length_to_end']) * sample_width]
                         write_wav_file(output_file_path, out_audio, sample_width)
-                        print(f"{output_file_path} code: 2 current_start: {current_start} current_end: {current_end}")
+                        logging.debug(f"{output_file_path} code: 2 current_start: {current_start} current_end: {current_end}")
                         connecting_audio['end_frame'] = connecting_audio['length_to_end']
                         connecting_audio['length_to_end'] = frame_length - connecting_audio['length_to_end']
                         connecting_audio['last_file_num'] = file_num
@@ -119,7 +120,7 @@ def process_audio(audio_path):
                         out_audio = connecting_audio['audio_data'] + audio_data[ : (current_end + margin) * sample_width] if connecting_audio['last_file_num'] < file_num else connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : (current_end + margin) * sample_width]
                         output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                         write_wav_file(output_file_path, out_audio, sample_width)
-                        print(f"{output_file_path} code: 3 current_start: {current_start} current_end: {current_end}")
+                        logging.debug(f"{output_file_path} code: 3 current_start: {current_start} current_end: {current_end}")
                         connecting_audio['audio_data'] = None
                         connecting_audio['end_frame'] = current_end
                         connecting_audio['length_to_end'] = frame_length - current_end
@@ -156,7 +157,7 @@ def process_audio(audio_path):
                         output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                         out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
                         write_wav_file(output_file_path, out_oudio, sample_width)
-                        print(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
+                        logging.debug(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
                         file_count += 1
                         start = next_start
         else:
@@ -164,11 +165,11 @@ def process_audio(audio_path):
             if connecting_audio['length_to_end'] >= margin:
                 out_audio = connecting_audio['audio_data'][ : (connecting_audio['end_frame'] + margin) * sample_width]
                 write_wav_file(output_file_path, out_audio, sample_width)
-                print(f"{output_file_path} code: 5")
+                logging.debug(f"{output_file_path} code: 5")
             else:
                 out_audio =connecting_audio['audio_data'] + audio_data[ : (margin - connecting_audio['length_to_end']) * sample_width]
                 write_wav_file(output_file_path, out_audio, sample_width)
-                print(f"{output_file_path} code: 6")
+                logging.debug(f"{output_file_path} code: 6")
                 connecting_audio['end_frame'] = connecting_audio['length_to_end']
                 connecting_audio['length_to_end'] = frame_length - connecting_audio['length_to_end']
                 connecting_audio['last_file_num'] = file_num
@@ -200,7 +201,7 @@ def process_audio(audio_path):
                 output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                 out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
                 write_wav_file(output_file_path, out_oudio, sample_width)
-                print(f"{output_file_path} code: 7 current_start: {current_start} current_end: {current_end}")
+                logging.debug(f"{output_file_path} code: 7 current_start: {current_start} current_end: {current_end}")
                 file_count += 1
                 start = next_start
 
@@ -226,8 +227,12 @@ if __name__ == "__main__":
     parser.add_argument("--chunk_size", type=int, default=3, help="Chunk size")
     parser.add_argument("--threshold", type=int, default=SAMPLING_RATE, help="Threshold for a sentence to split (frame)")
     parser.add_argument("--margin", type=int, default=SAMPLING_RATE / 2, help="Margin to be added before and after splitting (frame)")
+    parser.add_argument("--debug", action="store_true")
 
     args = parser.parse_args()
+
+    if args.debug:
+        logging.basicConfig(level = logging.DEBUG)
 
     url = args.url
     chunk_size = int(args.chunk_size)
@@ -264,7 +269,7 @@ if __name__ == "__main__":
                 if connecting_audio and connecting_audio['out'] is False:
                     output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                     write_wav_file(output_file_path, connecting_audio['audio_data'], sample_width)
-                    print(f"{output_file_path} code: 8")
+                    logging.debug(f"{output_file_path} code: 8")
                 break
     except KeyboardInterrupt:
         observer.stop()
