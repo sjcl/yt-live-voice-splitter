@@ -48,17 +48,6 @@ async def write_wav_file(file_path, audio_data, sample_width):
         wav_file.setframerate(SAMPLING_RATE)
         wav_file.writeframes(audio_data)
 
-async def save_audio_segments(file_name_prefix, segments, sample_width):
-    await write_wav_file(f"result/{file_name_prefix}.wav", b"".join(segments), sample_width)
-    # for i, segment in enumerate(segments):
-    #     output_file_path = f"result/{file_name_prefix}_segment_{i}.wav"
-    #     await write_wav_file(output_file_path, segment, sample_width)
-
-def extend_segment(segment, audio_data, sample_width, frame_length):
-    start = max(0, segment['start'] - 0) * sample_width
-    end = min(frame_length, segment['end'] + 0) * sample_width
-    return audio_data[start:end]
-
 async def process_audio(url, duration):
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
@@ -67,10 +56,6 @@ async def process_audio(url, duration):
     if os.path.exists("result"):
         shutil.rmtree("result")
     os.makedirs("result", exist_ok=True)
-
-    if os.path.exists("test"):
-        shutil.rmtree("test")
-    os.makedirs("test", exist_ok=True)
 
     vad_model, vad_utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
                               model='silero_vad',
@@ -259,7 +244,7 @@ async def process_audio(url, duration):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Real-time Voice Activity Detection")
     parser.add_argument("url", help="Livestream URL")
-    parser.add_argument("--duration", type=int, default=3, help="音声ファイルの切り分け間隔（秒）")
+    parser.add_argument("--duration", type=int, default=3, help="Chunk size")
 
     args = parser.parse_args()
 
