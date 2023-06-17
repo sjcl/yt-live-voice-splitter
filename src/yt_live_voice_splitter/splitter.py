@@ -2,6 +2,8 @@ import torch
 import os
 import wave
 import logging
+import fnmatch
+from watchdog.events import FileSystemEventHandler
 
 class Splitter:
 
@@ -195,3 +197,17 @@ class Splitter:
             output_file_path = os.path.join("result", f"audio_{self.file_count}.wav")
             self.write_wav_file(output_file_path, self.connecting_audio['audio_data'], self.sample_width)
             logging.debug(f"{output_file_path} code: 0")
+
+class SplitterFileHandler(FileSystemEventHandler):
+
+    def __init__(self, splitter: Splitter):
+        self.splitter = splitter
+        self.previous_file = None
+
+    def on_created(self, event):
+        if not os.path.isdir(event.src_path):
+            file_name = os.path.basename(event.src_path)
+            if fnmatch.fnmatch(file_name, '*.wav'):
+                if self.previous_file:
+                    self.splitter.process_audio(self.previous_file)
+                self.previous_file = event.src_path

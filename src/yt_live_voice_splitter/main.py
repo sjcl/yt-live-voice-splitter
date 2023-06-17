@@ -3,14 +3,13 @@ import os
 import time
 import yt_dlp
 import shutil
-import fnmatch
 import subprocess
 import logging
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+
 from faster_whisper import WhisperModel
 
-from splitter import Splitter
+from splitter import Splitter, SplitterFileHandler
 
 
 SAMPLING_RATE = 16000
@@ -41,19 +40,6 @@ def run_ffmpeg(audio_url):
     devnull = open('/dev/null', 'w')
     return subprocess.Popen(split_command, shell=True, stdout=devnull, stderr=devnull)
 
-class FileHandler(FileSystemEventHandler):
-
-    def __init__(self):
-        self.previous_file = None
-
-    def on_created(self, event):
-        if not os.path.isdir(event.src_path):
-            file_name = os.path.basename(event.src_path)
-            if fnmatch.fnmatch(file_name, '*.wav'):
-                if self.previous_file:
-                    splitter.process_audio(self.previous_file)
-                self.previous_file = event.src_path
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Real-time Voice Activity Detection")
     parser.add_argument("url", help="Livestream URL")
@@ -81,7 +67,7 @@ if __name__ == "__main__":
 
     audio_url = get_audio_url(url)
 
-    event_handler = FileHandler()
+    event_handler = SplitterFileHandler(splitter)
     observer = Observer()
     observer.schedule(event_handler, "tmp", recursive=False)
     observer.start()
