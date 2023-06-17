@@ -19,11 +19,7 @@ class Splitter:
                               model='silero_vad',
                               force_reload=True,
                               onnx=True)
-        (self.get_speech_timestamps,
-        self.save_audio,
-        self.read_audio,
-        self.VADIterator,
-        self.collect_chunks) = vad_utils
+        (self.get_speech_timestamps, _, self.read_audio, _, _) = vad_utils
 
     def read_wav_file(self, file_path):
         with wave.open(file_path, 'rb') as wav_file:
@@ -132,9 +128,14 @@ class Splitter:
                         
                         if next_start is None or next_start - current_end >= self.threshold:
                             output_file_path = os.path.join("result", f"audio_{self.file_count}.wav")
-                            out_oudio = self.last_audio[self.margin_start * self.sample_width : ] + audio_data[ : (current_end + self.margin) * self.sample_width] if self.last_audio is not None and self.margin_start < 0 else audio_data[max(0, self.margin_start) * self.sample_width : (current_end + self.margin) * self.sample_width]
-                            self.write_wav_file(output_file_path, out_oudio, self.sample_width)
-                            logging.debug(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
+                            if self.last_audio is not None and self.margin_start < 0:
+                                out_oudio = self.last_audio[self.margin_start * self.sample_width : ] + audio_data[ : (current_end + self.margin) * self.sample_width]
+                                self.write_wav_file(output_file_path, out_oudio, self.sample_width)
+                                logging.debug(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
+                            else:
+                                out_oudio = audio_data[max(0, self.margin_start) * self.sample_width : (current_end + self.margin) * self.sample_width]
+                                self.write_wav_file(output_file_path, out_oudio, self.sample_width)
+                                logging.debug(f"{output_file_path} code: 5 current_start: {current_start} current_end: {current_end}")
                             self.file_count += 1
                             start = next_start
             else:
@@ -142,11 +143,11 @@ class Splitter:
                 if self.connecting_audio['length_to_end'] >= self.margin:
                     out_audio = self.connecting_audio['audio_data'][ : (self.connecting_audio['end_frame'] + self.margin) * self.sample_width]
                     self.write_wav_file(output_file_path, out_audio, self.sample_width)
-                    logging.debug(f"{output_file_path} code: 5")
+                    logging.debug(f"{output_file_path} code: 6")
                 else:
                     out_audio =self.connecting_audio['audio_data'] + audio_data[ : (self.margin - self.connecting_audio['length_to_end']) * self.sample_width]
                     self.write_wav_file(output_file_path, out_audio, self.sample_width)
-                    logging.debug(f"{output_file_path} code: 6")
+                    logging.debug(f"{output_file_path} code: 7")
                     self.connecting_audio['end_frame'] = self.connecting_audio['length_to_end']
                     self.connecting_audio['length_to_end'] = frame_length - self.connecting_audio['length_to_end']
                     self.connecting_audio['last_file_num'] = file_num
@@ -179,11 +180,11 @@ class Splitter:
                     if self.last_audio is not None and self.margin_start < 0:
                         out_audio = self.last_audio[self.margin_start * self.sample_width : ] + audio_data[ : (current_end + self.margin) * self.sample_width]
                         self.write_wav_file(output_file_path, out_audio, self.sample_width)
-                        logging.debug(f"{output_file_path} code: 7 current_start: {current_start} current_end: {current_end}")
+                        logging.debug(f"{output_file_path} code: 8 current_start: {current_start} current_end: {current_end}")
                     else:
                         out_audio = audio_data[max(0, self.margin_start) * self.sample_width : (current_end + self.margin) * self.sample_width]
                         self.write_wav_file(output_file_path, out_audio, self.sample_width)
-                        logging.debug(f"{output_file_path} code: 8 current_start: {current_start} current_end: {current_end}")
+                        logging.debug(f"{output_file_path} code: 9 current_start: {current_start} current_end: {current_end}")
                     self.file_count += 1
                     start = next_start
 
@@ -193,4 +194,4 @@ class Splitter:
         if self.connecting_audio and self.connecting_audio['out'] is False:
             output_file_path = os.path.join("result", f"audio_{self.file_count}.wav")
             self.write_wav_file(output_file_path, self.connecting_audio['audio_data'], self.sample_width)
-            logging.debug(f"{output_file_path} code: 9")
+            logging.debug(f"{output_file_path} code: 0")
