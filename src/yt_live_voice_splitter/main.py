@@ -117,7 +117,11 @@ def process_audio(audio_path):
                     next_start = speech_segments[i + 1]['start'] if i < len(speech_segments) - 1 else None
 
                     if next_start is None or next_start - current_end >= threshold:
-                        out_audio = connecting_audio['audio_data'] + audio_data[ : (current_end + margin) * sample_width] if connecting_audio['last_file_num'] < file_num else connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : (current_end + margin) * sample_width]
+                        out_audio = connecting_audio['audio_data']
+                        if connecting_audio['last_file_num'] < file_num:
+                            out_audio += audio_data[:(current_end + margin) * sample_width]
+                        else:
+                            out_audio += audio_data[(connecting_audio['end_frame'] + 1) * sample_width:(current_end + margin) * sample_width]
                         output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                         write_wav_file(output_file_path, out_audio, sample_width)
                         logging.debug(f"{output_file_path} code: 3 current_start: {current_start} current_end: {current_end}")
@@ -199,9 +203,14 @@ def process_audio(audio_path):
 
             if next_start is None or next_start - current_end >= threshold:
                 output_file_path = os.path.join("result", f"audio_{file_count}.wav")
-                out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
-                write_wav_file(output_file_path, out_oudio, sample_width)
-                logging.debug(f"{output_file_path} code: 7 current_start: {current_start} current_end: {current_end}")
+                if last_audio is not None and margin_start < 0:
+                    out_audio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width]
+                    write_wav_file(output_file_path, out_audio, sample_width)
+                    logging.debug(f"{output_file_path} code: 7 current_start: {current_start} current_end: {current_end}")
+                else:
+                    out_audio = audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
+                    write_wav_file(output_file_path, out_audio, sample_width)
+                    logging.debug(f"{output_file_path} code: 8 current_start: {current_start} current_end: {current_end}")
                 file_count += 1
                 start = next_start
 
@@ -219,7 +228,6 @@ class FileHandler(FileSystemEventHandler):
                 if self.previous_file:
                     process_audio(self.previous_file)
                 self.previous_file = event.src_path
-                 # TODO: save last
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Real-time Voice Activity Detection")
@@ -269,7 +277,7 @@ if __name__ == "__main__":
                 if connecting_audio and connecting_audio['out'] is False:
                     output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                     write_wav_file(output_file_path, connecting_audio['audio_data'], sample_width)
-                    logging.debug(f"{output_file_path} code: 8")
+                    logging.debug(f"{output_file_path} code: 9")
                 break
     except KeyboardInterrupt:
         observer.stop()
