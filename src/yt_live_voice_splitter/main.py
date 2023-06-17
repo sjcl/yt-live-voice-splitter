@@ -15,6 +15,11 @@ from faster_whisper import WhisperModel
 
 SAMPLING_RATE = 16000
 
+def recreate_directory(directory_path):
+    if os.path.exists(directory_path):
+        shutil.rmtree(directory_path)
+    os.makedirs(directory_path, exist_ok=True)
+
 def get_audio_url(url):
     ydl_opts = {
         "format": "bestaudio/best",
@@ -47,14 +52,6 @@ async def write_wav_file(file_path, audio_data, sample_width):
         wav_file.writeframes(audio_data)
 
 async def process_audio(url, chunk_size, threshold, margin):
-    if os.path.exists("tmp"):
-        shutil.rmtree("tmp")
-    os.makedirs("tmp", exist_ok=True)
-
-    if os.path.exists("result"):
-        shutil.rmtree("result")
-    os.makedirs("result", exist_ok=True)
-
     vad_model, vad_utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
                               model='silero_vad',
                               force_reload=True,
@@ -96,9 +93,10 @@ async def process_audio(url, chunk_size, threshold, margin):
 
                     audio = read_audio(audio_path, sampling_rate=SAMPLING_RATE)
                     speech_segments = get_speech_timestamps(audio, vad_model, sampling_rate=SAMPLING_RATE)
-                    print(f"{audio_path} {speech_segments}")
                     
                     audio_data, num_channels, sample_width, frame_length = await read_wav_file(audio_path)
+
+                    print(f"Processing: {audio_path} length: {frame_length} Segments: {speech_segments}")
 
                     if connecting_audio and not connecting_audio['out']:
                         if speech_segments:
@@ -114,9 +112,11 @@ async def process_audio(url, chunk_size, threshold, margin):
                                     if connecting_audio['length_to_end'] >= margin:
                                         out_audio = connecting_audio['audio_data'][ : (connecting_audio['end_frame'] + margin) * sample_width]
                                         await write_wav_file(output_file_path, out_audio, sample_width)
+                                        print(f"{output_file_path} code: 1")
                                     else:
                                         out_audio = connecting_audio['audio_data'] + audio_data[ : (margin - connecting_audio['length_to_end']) * sample_width]
                                         await write_wav_file(output_file_path, out_audio, sample_width)
+                                        print(f"{output_file_path} code: 2")
                                         connecting_audio['end_frame'] = connecting_audio['length_to_end']
                                         connecting_audio['length_to_end'] = frame_length - connecting_audio['length_to_end']
                                         connecting_audio['last_file_num'] = file_num
@@ -141,6 +141,7 @@ async def process_audio(url, chunk_size, threshold, margin):
                                             out_audio = connecting_audio['audio_data'] + audio_data[ : (current_end + margin) * sample_width] if connecting_audio['last_file_num'] < file_num else connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : (current_end + margin) * sample_width]
                                             output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                                             await write_wav_file(output_file_path, out_audio, sample_width)
+                                            print(f"{output_file_path} code: 3")
                                             connecting_audio['audio_data'] = None
                                             connecting_audio['end_frame'] = current_end
                                             connecting_audio['length_to_end'] = frame_length - current_end
@@ -177,6 +178,7 @@ async def process_audio(url, chunk_size, threshold, margin):
                                             output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                                             out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
                                             await write_wav_file(output_file_path, out_oudio, sample_width)
+                                            print(f"{output_file_path} code: 4")
                                             file_count += 1
                                             start = next_start
                         else:
@@ -184,9 +186,11 @@ async def process_audio(url, chunk_size, threshold, margin):
                             if connecting_audio['length_to_end'] >= margin:
                                 out_audio = connecting_audio['audio_data'][ : (connecting_audio['end_frame'] + margin) * sample_width]
                                 await write_wav_file(output_file_path, out_audio, sample_width)
+                                print(f"{output_file_path} code: 5")
                             else:
                                 out_audio =connecting_audio['audio_data'] + audio_data[ : (margin - connecting_audio['length_to_end']) * sample_width]
                                 await write_wav_file(output_file_path, out_audio, sample_width)
+                                print(f"{output_file_path} code: 6")
                                 connecting_audio['end_frame'] = connecting_audio['length_to_end']
                                 connecting_audio['length_to_end'] = frame_length - connecting_audio['length_to_end']
                                 connecting_audio['last_file_num'] = file_num
@@ -218,6 +222,7 @@ async def process_audio(url, chunk_size, threshold, margin):
                                 output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                                 out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
                                 await write_wav_file(output_file_path, out_oudio, sample_width)
+                                print(f"{output_file_path} code: 7")
                                 file_count += 1
                                 start = next_start
 
@@ -237,6 +242,7 @@ async def process_audio(url, chunk_size, threshold, margin):
     if connecting_audio:
         output_file_path = os.path.join("result", f"audio_{file_count}.wav")
         await write_wav_file(output_file_path, connecting_audio['audio_data'], sample_width)
+        print(f"{output_file_path} code: 8")
 
     devnull.close()
 
@@ -253,6 +259,9 @@ if __name__ == "__main__":
     chunk_size = args.chunk_size
     threshold = args.threshold
     margin = args.margin
+
+    recreate_directory("tmp")
+    recreate_directory("result")
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(process_audio(url, chunk_size, threshold, margin))
