@@ -105,64 +105,64 @@ def process_audio(audio_path):
                     connecting_audio['audio_data'] = None
                     connecting_audio['out'] = True
                     file_count += 1
-                else:
-                    if connecting_audio['out'] is False:
-                        if current_end + margin > frame_length or frame_length - current_end < threshold:
-                            if connecting_audio['last_file_num'] < file_num:
-                                connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data
-                                connecting_audio['last_file_num'] = file_num
-                            elif connecting_audio['end_frame'] + 1 < frame_length:
-                                connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : ]
-                            connecting_audio['end_frame'] = speech_segments[-1]['end']
-                            connecting_audio['length_to_end'] = frame_length - speech_segments[-1]['end']
-                            break
-
-                        next_start = speech_segments[i + 1]['start'] if i < len(speech_segments) - 1 else None
-
-                        if next_start is None or next_start - current_end >= threshold:
-                            out_audio = connecting_audio['audio_data'] + audio_data[ : (current_end + margin) * sample_width] if connecting_audio['last_file_num'] < file_num else connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : (current_end + margin) * sample_width]
-                            output_file_path = os.path.join("result", f"audio_{file_count}.wav")
-                            write_wav_file(output_file_path, out_audio, sample_width)
-                            print(f"{output_file_path} code: 3 current_start: {current_start} current_end: {current_end}")
-                            connecting_audio['audio_data'] = None
-                            connecting_audio['end_frame'] = current_end
-                            connecting_audio['length_to_end'] = frame_length - current_end
+                    
+                if connecting_audio['out'] is False:
+                    if current_end + margin > frame_length or frame_length - current_end < threshold:
+                        if connecting_audio['last_file_num'] < file_num:
+                            connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data
                             connecting_audio['last_file_num'] = file_num
-                            connecting_audio['out'] = True
-                            file_count += 1
-                        else:
-                            if connecting_audio['last_file_num'] < file_num:
-                                connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data[ : current_end * sample_width]
-                                connecting_audio['last_file_num'] = file_num
-                            else:
-                                connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : current_end * sample_width]
-                            connecting_audio['end_frame'] = current_end
-                            connecting_audio['length_to_end'] = frame_length - current_end
+                        elif connecting_audio['end_frame'] + 1 < frame_length:
+                            connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : ]
+                        connecting_audio['end_frame'] = speech_segments[-1]['end']
+                        connecting_audio['length_to_end'] = frame_length - speech_segments[-1]['end']
+                        break
+
+                    next_start = speech_segments[i + 1]['start'] if i < len(speech_segments) - 1 else None
+
+                    if next_start is None or next_start - current_end >= threshold:
+                        out_audio = connecting_audio['audio_data'] + audio_data[ : (current_end + margin) * sample_width] if connecting_audio['last_file_num'] < file_num else connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : (current_end + margin) * sample_width]
+                        output_file_path = os.path.join("result", f"audio_{file_count}.wav")
+                        write_wav_file(output_file_path, out_audio, sample_width)
+                        print(f"{output_file_path} code: 3 current_start: {current_start} current_end: {current_end}")
+                        connecting_audio['audio_data'] = None
+                        connecting_audio['end_frame'] = current_end
+                        connecting_audio['length_to_end'] = frame_length - current_end
+                        connecting_audio['last_file_num'] = file_num
+                        connecting_audio['out'] = True
+                        file_count += 1
                     else:
-                        if current_end + margin > frame_length or frame_length - current_end < threshold:
-                            if connecting_audio['last_file_num'] < file_num:
-                                connecting_audio['audio_data'] = audio_data
-                            else:
-                                if connecting_audio['end_frame'] + 1 < frame_length:
-                                    connecting_audio['audio_data'] = audio_data[(connecting_audio['end_frame'] + 1) * sample_width : ]
-                                else:
-                                    continue
-                            connecting_audio['end_frame'] = current_end
-                            connecting_audio['length_to_end'] = frame_length - current_end
+                        if connecting_audio['last_file_num'] < file_num:
+                            connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data[ : current_end * sample_width]
                             connecting_audio['last_file_num'] = file_num
-                            connecting_audio['out'] = False
-                            break
+                        else:
+                            connecting_audio['audio_data'] = connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : current_end * sample_width]
+                        connecting_audio['end_frame'] = current_end
+                        connecting_audio['length_to_end'] = frame_length - current_end
+                else:
+                    if current_end + margin > frame_length or frame_length - current_end < threshold:
+                        if connecting_audio['last_file_num'] < file_num:
+                            connecting_audio['audio_data'] = audio_data
+                        else:
+                            if connecting_audio['end_frame'] + 1 < frame_length:
+                                connecting_audio['audio_data'] = audio_data[(connecting_audio['end_frame'] + 1) * sample_width : ]
+                            else:
+                                continue
+                        connecting_audio['end_frame'] = current_end
+                        connecting_audio['length_to_end'] = frame_length - current_end
+                        connecting_audio['last_file_num'] = file_num
+                        connecting_audio['out'] = False
+                        break
 
-                        margin_start = start - margin
-                        next_start = speech_segments[i + 1]['start'] if i < len(speech_segments) - 1 else None
-                        
-                        if next_start is None or next_start - current_end >= threshold:
-                            output_file_path = os.path.join("result", f"audio_{file_count}.wav")
-                            out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
-                            write_wav_file(output_file_path, out_oudio, sample_width)
-                            print(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
-                            file_count += 1
-                            start = next_start
+                    margin_start = start - margin
+                    next_start = speech_segments[i + 1]['start'] if i < len(speech_segments) - 1 else None
+                    
+                    if next_start is None or next_start - current_end >= threshold:
+                        output_file_path = os.path.join("result", f"audio_{file_count}.wav")
+                        out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
+                        write_wav_file(output_file_path, out_oudio, sample_width)
+                        print(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
+                        file_count += 1
+                        start = next_start
         else:
             output_file_path = os.path.join("result", f"audio_{file_count}.wav")
             if connecting_audio['length_to_end'] >= margin:
@@ -190,7 +190,7 @@ def process_audio(audio_path):
             # if over the current chunk including the margin, or if connecting to the next chunk may have more than the threshold space
             if current_end + margin > frame_length or frame_length - current_end < threshold:
                 connecting_audio = {
-                    'audio_data': last_audio[margin_start * sample_width : ] + audio_data if last_audio is not None and margin_start < 0 else audio_data[max(0, start - margin) * sample_width : ],
+                    'audio_data': last_audio[margin_start * sample_width : ] + audio_data if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : ],
                     'end_frame': speech_segments[-1]['end'],
                     'length_to_end': frame_length - speech_segments[-1]['end'],
                     'last_file_num': file_num,
@@ -236,14 +236,14 @@ if __name__ == "__main__":
     parser.add_argument("url", help="Livestream URL")
     parser.add_argument("--chunk_size", type=int, default=3, help="Chunk size")
     parser.add_argument("--threshold", type=int, default=SAMPLING_RATE, help="Threshold for a sentence to split (frame)")
-    parser.add_argument("--margin", type=int, default=SAMPLING_RATE, help="Margin to be added before and after splitting (frame)")
+    parser.add_argument("--margin", type=int, default=SAMPLING_RATE / 2, help="Margin to be added before and after splitting (frame)")
 
     args = parser.parse_args()
 
     url = args.url
-    chunk_size = args.chunk_size
-    threshold = args.threshold
-    margin = args.margin
+    chunk_size = int(args.chunk_size)
+    threshold = int(args.threshold)
+    margin = int(args.margin)
 
     recreate_directory("tmp")
     recreate_directory("result")
