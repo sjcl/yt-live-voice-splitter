@@ -7,9 +7,8 @@ import subprocess
 import logging
 from watchdog.observers import Observer
 
-from faster_whisper import WhisperModel
-
 from splitter import Splitter, SplitterFileHandler
+from transcriber import Transcriber, TranscriberFileHandler
 
 
 SAMPLING_RATE = 16000
@@ -62,14 +61,13 @@ if __name__ == "__main__":
     recreate_directory("result")
 
     splitter = Splitter(sampling_rate=SAMPLING_RATE, threshold=threshold, margin=margin)
-
-    # whisper_model = WhisperModel("large-v2", device="cuda", compute_type="float16")
+    transcriber = Transcriber()
 
     audio_url = get_audio_url(url)
 
-    event_handler = SplitterFileHandler(splitter)
     observer = Observer()
-    observer.schedule(event_handler, "tmp", recursive=False)
+    observer.schedule(SplitterFileHandler(splitter), "tmp", recursive=False)
+    observer.schedule(TranscriberFileHandler(transcriber), "result", recursive=False)
     observer.start()
 
     ffmpeg = run_ffmpeg(audio_url)
