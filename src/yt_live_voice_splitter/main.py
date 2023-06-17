@@ -70,16 +70,6 @@ file_count = 1
 
 def process_audio(audio_path):
     global connecting_audio, last_audio, file_count
-    # whisper_model = WhisperModel("large-v2", device="cuda", compute_type="float16")
-
-    # audio_url = get_audio_url(url)
-
-    # split_command = f"ffmpeg -i {audio_url} -f segment -segment_time {chunk_size} -ac 1 -ar {SAMPLING_RATE} -vn tmp/audio_%03d.wav"
-    # devnull = open('/dev/null', 'w')
-    # # process = await asyncio.create_subprocess_shell(split_command, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
-    # process = await asyncio.create_subprocess_shell(split_command, stdout=devnull, stderr=devnull)
-
-    # await asyncio.sleep(chunk_size)
 
     file_num = int(os.path.basename(audio_path).split("_")[1].split(".")[0])
 
@@ -90,7 +80,7 @@ def process_audio(audio_path):
 
     print(f"Processing: {audio_path} length: {frame_length} Segments: {speech_segments}")
 
-    if connecting_audio and not connecting_audio['out']:
+    if connecting_audio and connecting_audio['out'] is False:
         if speech_segments:
             start = speech_segments[0]['start']
 
@@ -104,11 +94,11 @@ def process_audio(audio_path):
                     if connecting_audio['length_to_end'] >= margin:
                         out_audio = connecting_audio['audio_data'][ : (connecting_audio['end_frame'] + margin) * sample_width]
                         write_wav_file(output_file_path, out_audio, sample_width)
-                        print(f"{output_file_path} code: 1")
+                        print(f"{output_file_path} code: 1 current_start: {current_start} current_end: {current_end}")
                     else:
                         out_audio = connecting_audio['audio_data'] + audio_data[ : (margin - connecting_audio['length_to_end']) * sample_width]
                         write_wav_file(output_file_path, out_audio, sample_width)
-                        print(f"{output_file_path} code: 2")
+                        print(f"{output_file_path} code: 2 current_start: {current_start} current_end: {current_end}")
                         connecting_audio['end_frame'] = connecting_audio['length_to_end']
                         connecting_audio['length_to_end'] = frame_length - connecting_audio['length_to_end']
                         connecting_audio['last_file_num'] = file_num
@@ -133,7 +123,7 @@ def process_audio(audio_path):
                             out_audio = connecting_audio['audio_data'] + audio_data[ : (current_end + margin) * sample_width] if connecting_audio['last_file_num'] < file_num else connecting_audio['audio_data'] + audio_data[(connecting_audio['end_frame'] + 1) * sample_width : (current_end + margin) * sample_width]
                             output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                             write_wav_file(output_file_path, out_audio, sample_width)
-                            print(f"{output_file_path} code: 3")
+                            print(f"{output_file_path} code: 3 current_start: {current_start} current_end: {current_end}")
                             connecting_audio['audio_data'] = None
                             connecting_audio['end_frame'] = current_end
                             connecting_audio['length_to_end'] = frame_length - current_end
@@ -170,7 +160,7 @@ def process_audio(audio_path):
                             output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                             out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
                             write_wav_file(output_file_path, out_oudio, sample_width)
-                            print(f"{output_file_path} code: 4")
+                            print(f"{output_file_path} code: 4 current_start: {current_start} current_end: {current_end}")
                             file_count += 1
                             start = next_start
         else:
@@ -214,7 +204,7 @@ def process_audio(audio_path):
                 output_file_path = os.path.join("result", f"audio_{file_count}.wav")
                 out_oudio = last_audio[margin_start * sample_width : ] + audio_data[ : (current_end + margin) * sample_width] if last_audio is not None and margin_start < 0 else audio_data[max(0, margin_start) * sample_width : (current_end + margin) * sample_width]
                 write_wav_file(output_file_path, out_oudio, sample_width)
-                print(f"{output_file_path} code: 7")
+                print(f"{output_file_path} code: 7 current_start: {current_start} current_end: {current_end}")
                 file_count += 1
                 start = next_start
 
@@ -267,6 +257,8 @@ if __name__ == "__main__":
     read_audio,
     VADIterator,
     collect_chunks) = vad_utils
+
+    # whisper_model = WhisperModel("large-v2", device="cuda", compute_type="float16")
 
     audio_url = get_audio_url(url)
 
