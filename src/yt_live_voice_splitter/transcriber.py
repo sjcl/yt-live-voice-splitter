@@ -6,10 +6,13 @@ from watchdog.events import FileSystemEventHandler
 class Transcriber:
 
     def __init__(self):
-        self.whisper_model = WhisperModel("large-v2", device="cuda", compute_type="float16")
+        self.model = WhisperModel("large-v2", device="cuda", compute_type="float16")
 
     def process_audio(self, audio_path):
-        pass
+        segments, info = self.model.transcribe(audio_path, language="ja")
+        for segment in segments:
+            print(segment.text)
+
 
 class TranscriberFileHandler(FileSystemEventHandler):
 
