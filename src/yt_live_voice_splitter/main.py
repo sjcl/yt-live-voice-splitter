@@ -13,7 +13,7 @@ from transcriber import Transcriber, TranscriberFileHandler
 
 SAMPLING_RATE = 16000
 
-def recreate_directory(directory_path):
+def reset_directory(directory_path):
     if os.path.exists(directory_path):
         shutil.rmtree(directory_path)
     os.makedirs(directory_path, exist_ok=True)
@@ -35,7 +35,7 @@ def get_audio_url(url):
     return audio_url
 
 def run_ffmpeg(audio_url):
-    split_command = f"ffmpeg -i {audio_url} -f segment -segment_time {chunk_size} -ac 1 -ar {SAMPLING_RATE} -vn tmp/audio_%03d.wav"
+    split_command = f"ffmpeg -i {audio_url} -f segment -segment_time {chunk_size} -ac 1 -ar {SAMPLING_RATE} -vn tmp/audio_%05d.wav"
     devnull = open('/dev/null', 'w')
     return subprocess.Popen(split_command, shell=True, stdout=devnull, stderr=devnull)
 
@@ -57,8 +57,8 @@ if __name__ == "__main__":
     threshold = int(args.threshold)
     margin = int(args.margin)
 
-    recreate_directory("tmp")
-    recreate_directory("result")
+    reset_directory("tmp")
+    reset_directory("result")
 
     splitter = Splitter(sampling_rate=SAMPLING_RATE, threshold=threshold, margin=margin)
     transcriber = Transcriber()
